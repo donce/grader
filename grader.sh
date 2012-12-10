@@ -1,22 +1,56 @@
-PROG=main
-temp=temp.out
+#!/bin/bash
+TEMP_FILE=`tempfile`
 
-for file in `find . -name '*.in'`
+nr=0
+
+countWrong=0
+
+if [ $# -eq 0 ]; then
+	echo "Argument missing"
+	exit 1
+fi
+
+prog=$1
+if [ ! -f $prog ]; then
+	echo "File \"$prog\" does not exist"
+	exit 1
+fi
+
+<<nereik
+while [ $# -gt 0 ]
 do
-	test=${file:2:-3}
-	in=$test.in
-	out=$test.out
+	echo $1
+	shift 1
+done;
+nereik
+
+for file in *.in
+do
+	echo "$file"
+	title=${file:0:-3}
+	in=$title.in
+	out=$title.out
 
 	echo ---------------------
-	echo "Running $test"
-	echo ---------------------
-	./$PROG < $in > $temp
+	nr=$(($nr+1))
+	echo "TEST #$nr ($title)"
+	$prog < $in > $TEMP_FILE
 	if [ -f $out ]; then
-		diff -s -y $temp $out"
+		if [ `diff -q $TEMP_FILE $out` ]; then
+			countWrong=$((countWrong+1))
+			echo "WRONG"
+			echo "Received:"
+			head $TEMP_FILE
+			echo "Correct:"
+			head $out
+		else
+			echo "CORRECT"
+		fi
 	else
-		mv $temp $out
-		echo "Solution missing - created"
+		mv $TEMP_FILE $out
+		echo "Solution missing, created:"
+		cat $out | head
 	fi
 done
 
-rm temp.out
+rm -f $TEMP_FILE
